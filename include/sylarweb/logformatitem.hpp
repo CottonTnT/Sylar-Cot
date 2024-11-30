@@ -22,10 +22,10 @@ private:
 };
 
 template <typename Item>
-class FormatItemImpl : FormatItemBase {
+class FormatItemImpl : public FormatItemBase {
 public:
     template <typename... Ts>
-    FormatItemImpl(Ts... ts)
+    explicit FormatItemImpl(Ts&&... ts)
         : item(std::forward<Ts>(ts)...) {};
 
     auto format(std::ostream& os, std::shared_ptr<LogEvent> event)
@@ -37,7 +37,7 @@ public:
     auto clone()
         -> FormatItemBase::Sptr override
     {
-        return std::make_shared<FormatItemBase>();
+        return std::make_shared<FormatItemImpl>(item);
     }
     ~FormatItemImpl() = default;
 
