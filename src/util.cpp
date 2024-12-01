@@ -4,9 +4,10 @@
 #include <syscall.h>
 #include <unistd.h>
 
+
 namespace Sylar {
 
-auto getElapsedMS()
+auto getElapseMs()
     -> uint64_t
 {
     struct timespec ts = {0};

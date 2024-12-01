@@ -346,7 +346,7 @@ void LogFormatter::init()
     static auto sItemFuncs = std::unordered_map<std::string, GetItemFuncs> {
 #define XX(p, item)                                                                                               \
     {                                                                                                             \
-#p, []() -> FormatItemBase::Sptr { return std::make_shared<FormatItemBase>(new FormatItemImpl<item>()); } \
+#p, []() -> FormatItemBase::Sptr { return std::make_shared<FormatItemImpl<MessageFormatItem>>(); } \
     }
 #include "itemtype.inl"
 #undef XX
@@ -356,11 +356,11 @@ void LogFormatter::init()
     {
         if (p.first == 0)
         {
-            m_items.push_back(std::make_shared<FormatItemBase>(new FormatItemImpl<StringFormatItem>(p.second)));
+            m_items.push_back(std::make_shared<FormatItemImpl<StringFormatItem>>(p.second));
         }
         else if (p.second == "d")
         {
-            m_items.push_back(std::make_shared<FormatItemBase>(new FormatItemImpl<DateTimeFormatItem>(dateformat)));
+            m_items.push_back(std::make_shared<FormatItemImpl<DateTimeFormatItem>>(dateformat));
         }
         else
         {

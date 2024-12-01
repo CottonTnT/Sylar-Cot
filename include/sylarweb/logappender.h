@@ -36,7 +36,7 @@ protected:
 };
 
 template <typename Appender>
-class LogAppenderImpl : LogAppenderBase {
+class LogAppenderImpl : public LogAppenderBase {
 public:
     LogAppenderImpl() = default;
 
