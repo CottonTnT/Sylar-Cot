@@ -6,6 +6,17 @@
 #include <semaphore.h>
 #include <cstdint>
 #include <mutex>
+#include <assert.h>
+
+#define MCHECK(ret) ({ decltype(ret) errnum = (ret);         \
+                       assert(errnum == 0); (void) errnum; })
+
+#define CCHECK(call)                    \
+    do {                                \
+        decltype(call) errnum = (call); \
+        assert(errnum == 0);            \
+        (void)errnum;                   \
+    } while (0);
 
 namespace Cot {
 
@@ -74,6 +85,12 @@ public:
         pthread_mutex_unlock(&m_mutex);
     }
 
+    auto getPthreadMutex()
+        -> pthread_mutex_t*
+    {
+        return &m_mutex;
+    }
+
 private:
     /// mutex
     pthread_mutex_t m_mutex;
@@ -121,6 +138,105 @@ private:
     pthread_spinlock_t m_mutex;
 };
 
-} //namespace Sylar
+class RWMutex : NonCopyOrMoveable {
+public:
+    RWMutex()
+    {
+        pthread_rwlock_init(&m_lock, nullptr);
+    }
+
+    void rdlock()
+    {
+        pthread_rwlock_rdlock(&m_lock);
+    }
+
+    void wrlock()
+    {
+        pthread_rwlock_wrlock(&m_lock);
+    }
+
+    void unlock()
+    {
+        pthread_rwlock_unlock(&m_lock);
+    }
+
+    ~RWMutex()
+    {
+        pthread_rwlock_destroy(&m_lock);
+    }
+
+private:
+    pthread_rwlock_t m_lock;
+};
+
+template <typename Mutex, typename LockTag = void>
+class LockGuard : NonCopyOrMoveable {
+public:
+    LockGuard(Mutex& mutex)
+        : m_mutex(mutex)
+    {
+        m_mutex.lock();
+    }
+    ~LockGuard()
+    {
+        m_mutex.unlock();
+    }
+
+private:
+    Mutex& m_mutex;
+};
+
+struct ReadLockTag
+{
+};
+
+struct WriteLockTag
+{
+};
+
+namespace {
+
+    void _lockDispatch(RWMutex& mutex, WriteLockTag tag)
+    {
+        mutex.wrlock();
+    }
+
+    void _lockDispatch(RWMutex& mutex, ReadLockTag tag)
+    {
+        mutex.rdlock();
+    }
+
+    void _unlockDispatch(RWMutex& mutex, WriteLockTag tag)
+    {
+        mutex.unlock();
+    }
+
+    void _unlockDispatch(RWMutex& mutex, ReadLockTag tag)
+    {
+        mutex.unlock();
+    }
+
+} //namespace
+
+template <typename LockTag>
+class LockGuard<RWMutex, LockTag> {
+public:
+    LockGuard(RWMutex& mutex)
+        : m_mutex(mutex)
+    {
+        _lockDispatch(m_mutex, LockTag());
+    }
+
+    ~LockGuard()
+    {
+        _unlockDispatch(m_mutex, LockTag());
+    }
+
+private:
+    RWMutex& m_mutex;
+    bool m_locked = false;
+};
+
+} //namespace Cot
 
 #endif
